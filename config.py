@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-class ApiKey:
+class ApiKeys:
     def __init__(self):
         load_dotenv()
 
