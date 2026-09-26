@@ -34,6 +34,7 @@ for message in st.session_state.chat_history:
         st.markdown(message["text"])  
 
 input_text = st.chat_input("Ask me anything...")
+
 if input_text:
     with st.chat_message("user"):
         st.markdown(input_text)

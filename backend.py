@@ -27,7 +27,8 @@ def demo_chatbot():
         temperature=0.3,
         max_tokens=1024,)
     return llm
-#
+
+# InMemoryChatMessageHistory() is a LangChain class that stores a chat conversation in memory (RAM) while your application is running.
 def demo_memory():
     """
     Return a fresh in-memory chat history store.
@@ -43,14 +44,30 @@ def demo_conversation(input_text, memory):
     """
     llm = demo_chatbot()
 
-    base_chain = (
-        RunnablePassthrough.assign(
-            history=itemgetter("history") | trimmer
-        )
-        | CHAT_PROMPT
-        | llm
-    )
+    # lang chain expression language
+    # RunnablePassthrough passes the input through unchanged, but assign() lets you add or modify fields.
 
+    # RunnablePassthrough.assign(history=itemgetter("history") | trimmer)
+    # Extract the history field.
+    # Pass it through the trimmer.
+    # Replace the original history with the trimmed version.
+    # This chain:
+    # Receives a question and chat history.
+    # Trims the history to stay within token limits.
+    # Replaces the original history with the trimmed version.
+    # Builds a prompt using the trimmed history.
+    # Sends the prompt to the LLM and returns the response.
+
+    base_chain = (RunnablePassthrough.assign(history=itemgetter("history") | trimmer) | CHAT_PROMPT | llm )
+
+    # RunnableWithMessageHistory is a LangChain wrapper that automatically manages chat history for a chain.
+    # lambda session_id: memory - Given a session ID, where should I get the chat history?
+    # input_messages_key="input" - The user's message is stored in the input field.
+    # history_messages_key="history" - Inject conversation history into the chain using the variable named history
+    # lambda session_id: memory - defines an anonymous function (lambda).
+    # It's equivalent to:
+    # def get_memory(session_id):
+    #       return memory
 
     chat_with_history = RunnableWithMessageHistory(
         base_chain,
@@ -58,6 +75,13 @@ def demo_conversation(input_text, memory):
         input_messages_key="input",
         history_messages_key="history",
     )
+
+    # This code sends a user message to the chatbot chain, including the conversation history associated with a specific session.
+    # chat_with_history.invoke() - executes the chain
+    # {"input": input_text} - passes user's message into the chain
+    # config={"configurable": {"session_id": "bepec-session"}} - provides the conversation identifier.
+    # the code sends the user's message to the chatbot using the chat history for session "bepec-session", 
+    # gets the AI response, and extracts the response text into chat_reply
 
     try:
         result = chat_with_history.invoke(
@@ -70,7 +94,9 @@ def demo_conversation(input_text, memory):
 
     return chat_reply, memory
 
-# example for ai
+# few shot examples
+# What it does: Creates a list of dictionary pairs containing sample user inputs and the exact responses you expect from the AI.
+# Why it matters: This teaches the model the required tone, structure, and formatting before it answers the actual user prompt.
 examples = [
     {
         "input": "Who are you?",
@@ -91,7 +117,8 @@ examples = [
     },
 ]
 
-# example prompt
+# formatting examples
+# What it does: Defines a template showing LangChain how to turn each dictionary entry into a chat message pair (a human turn followed by an ai turn).
 example_prompt = ChatPromptTemplate.from_messages(
     [
         ("human", "{input}"),
@@ -100,28 +127,41 @@ example_prompt = ChatPromptTemplate.from_messages(
 )
 
 # few shot prompt
+# What it does: Iterates through your list of examples and converts them into formatted chat messages ready to be inserted into the main prompt.
 few_shot_prompt = FewShotChatMessagePromptTemplate(
     example_prompt=example_prompt,
     examples=examples,
 )
 
-# chat prompt
+# Assembling the full chat prompt
+# ("system", ...): Sets the global system instruction for the AI
+# few_shot_prompt: Places the few-shot examples right after the system prompt.
+# MessagesPlaceholder(variable_name="history"): Acts as a dynamic placeholder where memory (past conversation turns) will be inserted.
+# ("human", "{input}"): Captures the new message sent by the user.
+
 CHAT_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
-            "system",
+            "system", 
             "You are a helpful, friendly AI assistant built by BEPEC Solutions. "
             "You remember the ongoing conversation and answer clearly and concisely. "
             "If you don't know something, say so honestly instead of making things up. "
-            "Match the tone and style of the examples. and end with Thanks for Asking BEPEC",
+            "Match the tone and style of the examples and end with Thanks for Asking BEPEC",
         ),
-        few_shot_prompt,
-        MessagesPlaceholder(variable_name="history"),
-        ("human", "{input}"),
+        few_shot_prompt, 
+        MessagesPlaceholder(variable_name="history"), 
+        ("human", "{input}"), 
     ]
 )
 
 # trimmer
+# This trimmer:
+# Keeps conversation history under 1000 tokens.
+# Retains the most recent messages (strategy="last").
+# Uses demo_chatbot() to calculate token counts.
+# Does not consider the system message in the trimming process.
+# Makes sure the resulting history starts with a HumanMessage.
+
 trimmer = trim_messages(
     max_tokens=1000,
     strategy="last",
