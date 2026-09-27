@@ -1,0 +1,29 @@
+[project]
+name = "memory-chatbot-aws"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "ashwin824", email = "ashwin0824@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "boto3>=1.43.103",
+    "langchain>=1.4.2",
+    "langchain-aws>=1.7.9",
+    "langchain-core>=1.6.5",
+    "langchain-openai>=1.6.6",
+    "python-dotenv>=1.2.3",
+    "streamlit>=1.64.0",
+    "transformers>=5.17.0",
+    "watchdog>=6.0.0",
+]
+
+[project.scripts]
+memory-chatbot-aws = "memory_chatbot_aws:main"
+
+[build-system]
+requires = ["uv_build>=0.12.15,<0.13.0"]
+build-backend = "uv_build"
+
+
